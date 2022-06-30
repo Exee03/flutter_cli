@@ -29,11 +29,13 @@ class ModelGenerator {
   final List<ClassDefinition> allClasses = <ClassDefinition>[];
   final Map<String, String> sameClassMapping = HashMap<String, String>();
   late List<Hint> hints;
+  final bool _useStorage;
 
   ModelGenerator(this._rootClassName,
       [this._privateFields = false,
       this._withCopyConstructor,
-      List<Hint>? hints]) {
+      List<Hint>? hints,
+      this._useStorage = false]) {
     if (hints != null) {
       this.hints = hints;
     } else {
@@ -55,8 +57,8 @@ class ModelGenerator {
     } else {
       final jsonRawData = jsonRawDynamicData as Map;
       final keys = jsonRawData.keys.cast<String>();
-      var classDefinition =
-          ClassDefinition(className, _privateFields, _withCopyConstructor);
+      var classDefinition = ClassDefinition(
+          className, _privateFields, _withCopyConstructor, _useStorage);
 
       for (var key in keys) {
         TypeDefinition typeDef;
@@ -170,7 +172,15 @@ class ModelGenerator {
         }
       }
     }
-    return DartCode(allClasses.map((c) => c.toString()).join('\n'), warnings);
+    String code = allClasses.map((c) => c.toString()).join('\n');
+    code = _importStorageClass(code);
+    return DartCode(code, warnings);
+  }
+
+  String _importStorageClass(String value) {
+    if (!_useStorage) return value;
+    const importValue = "import '../../base/storage_base.dart';";
+    return [importValue, value].join('\n');
   }
 
   /// generateDartClasses will generate all classes and append one after another

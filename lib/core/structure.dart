@@ -16,10 +16,11 @@ class Structure {
         ? replaceAsExpected(path: 'lib/pages')
         : replaceAsExpected(path: 'lib/app/modules'),
     'widget': replaceAsExpected(path: 'lib/app/widgets/'),
-    'model': replaceAsExpected(path: 'lib/app/data/models'),
+    // 'model': replaceAsExpected(path: 'lib/app/data/models'),
+    'model': replaceAsExpected(path: 'lib/app/data'),
     'init': replaceAsExpected(path: 'lib/'),
     'route': replaceAsExpected(path: 'lib/routes/'),
-    'repository': replaceAsExpected(path: 'lib/app/data/'),
+    'repository': replaceAsExpected(path: 'lib/app/data'),
     'provider': replaceAsExpected(path: 'lib/app/data'),
     'controller': replaceAsExpected(path: 'lib/app'),
     'binding': replaceAsExpected(path: 'lib/app'),
@@ -32,6 +33,7 @@ class Structure {
         path: 'lib/infrastructure/navigation/navigation.dart'),
     //generator files
     'generate_locales': replaceAsExpected(path: 'lib/generated'),
+    'base': replaceAsExpected(path: 'lib/app/base'),
   };
 
   static FileModel model(String? name, String command, bool wrapperFolder,

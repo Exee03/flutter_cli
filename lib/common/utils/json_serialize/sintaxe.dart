@@ -181,12 +181,15 @@ class ClassDefinition {
   final bool _privateFields;
   final bool? _withCopyConstructor;
   final Map<String, TypeDefinition> fields = <String, TypeDefinition>{};
+  final bool _withStorage;
 
   String get name => _name;
 
   bool get privateFields => _privateFields;
 
   bool? get copyConstructor => _withCopyConstructor;
+
+  bool get withStorage => _withStorage;
 
   List<Dependency> get dependencies {
     final dependenciesList = <Dependency>[];
@@ -200,8 +203,12 @@ class ClassDefinition {
     return dependenciesList;
   }
 
-  ClassDefinition(this._name,
-      [this._privateFields = false, this._withCopyConstructor = false]);
+  ClassDefinition(
+    this._name, [
+    this._privateFields = false,
+    this._withCopyConstructor = false,
+    this._withStorage = false,
+  ]);
 
   @override
   bool operator ==(dynamic other) {
@@ -376,18 +383,40 @@ class ClassDefinition {
     return sb.toString();
   }
 
+  String get _classDefinition {
+    if (!withStorage) return 'class $name';
+    return 'class $name extends $_storageAbstractClass<$name>';
+  }
+
+  String get _storageAbstractClass {
+    return 'StorageBase';
+  }
+
+  String get _storageFunc {
+    if (!withStorage) return '';
+    final sb = StringBuffer();
+    final indexValue = fields.containsKey('id') ? 'id?.toInt() ?? 0' : '0';
+    sb.write("\n");
+    sb.write("@override\nint get index => $indexValue;\n\n");
+    sb.write(
+        "@override\n$name Function(dynamic data) get decoder => (data) => $name.fromJson(data);\n\n");
+    sb.write("@override\nMap<String, dynamic>? get encoder => toJson();\n\n");
+    sb.write("\n");
+    return sb.toString();
+  }
+
   @override
   String toString() {
     if (privateFields) {
-      return 'class $name {\n$_fieldList\n\n$_defaultPrivateConstructor\n\n'
-          '$_gettersSetters\n\n$_jsonParseFunc\n\n$_jsonGenFunc\n}\n';
+      return '$_classDefinition {\n$_fieldList\n\n$_defaultPrivateConstructor\n\n'
+          '$_gettersSetters\n\n$_jsonParseFunc\n\n$_jsonGenFunc\n$_storageFunc}\n';
     } else {
       if (copyConstructor!) {
-        return 'class $name {\n$_fieldList\n\n$_defaultConstructor'
-            '\n\n$_copyConstructor\n\n$_jsonParseFunc\n\n$_jsonGenFunc\n}\n';
+        return '$_classDefinition {\n$_fieldList\n\n$_defaultConstructor'
+            '\n\n$_copyConstructor\n\n$_jsonParseFunc\n\n$_jsonGenFunc\n$_storageFunc}\n';
       } else {
-        return 'class $name {\n$_fieldList\n\n$_defaultConstructor'
-            '\n\n$_jsonParseFunc\n\n$_jsonGenFunc\n}\n';
+        return '$_classDefinition {\n$_fieldList\n\n$_defaultConstructor'
+            '\n\n$_jsonParseFunc\n\n$_jsonGenFunc\n$_storageFunc}\n';
       }
     }
   }

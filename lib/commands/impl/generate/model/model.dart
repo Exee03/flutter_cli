@@ -1,6 +1,5 @@
 import 'dart:io';
 
-
 import 'package:dcli/dcli.dart';
 import 'package:http/http.dart';
 import 'package:path/path.dart' as p;
@@ -8,18 +7,66 @@ import 'package:recase/recase.dart';
 
 import '../../../../common/utils/json_serialize/model_generator.dart';
 import '../../../../common/utils/logger/log_utils.dart';
+import '../../../../common/utils/pubspec/pubspec_utils.dart';
+import '../../../../common/utils/shell/shel.utils.dart';
 import '../../../../core/internationalization.dart';
 import '../../../../core/locales.g.dart';
 import '../../../../core/structure.dart';
 import '../../../../exception_handler/exceptions/cli_exception.dart';
 import '../../../../functions/create/create_single_file.dart';
 import '../../../../models/file_model.dart';
-import '../../../../samples/impl/get_provider.dart';
+import '../../../../samples/impl/base/repository_base.dart';
+import '../../../../samples/impl/base/storage_base.dart';
+// import '../../../../samples/impl/get_provider.dart';
+import '../../../../samples/impl/get_repository.dart';
 import '../../../interface/command.dart';
 
 class GenerateModelCommand extends Command {
   @override
   String get commandName => 'model';
+
+  Future<void> createStorageBase() async {
+    final sample = StorageBaseSample();
+
+    if (File(sample.path).existsSync()) return;
+
+    sample.create();
+
+    final dependencies = ['get_storage', 'kt_dart'];
+    for (var dependency in dependencies) {
+      await PubspecUtils.addDependencies(dependency, runPubGet: false);
+    }
+    await ShellUtils.pubGet();
+  }
+
+  Future<void> createRepository(String name, String modelPath) async {
+    if (containsArg('--skipRepository')) return;
+    await createRepositoryBase();
+
+    final sample = RepositorySample(
+      name,
+      createEndpoints: true,
+      modelPath: Structure.pathToDirImport(modelPath),
+    );
+
+    handleFileCreate(
+      name,
+      'repository',
+      onCommand,
+      true,
+      sample,
+      name.snakeCase,
+    );
+  }
+
+  Future<void> createRepositoryBase() async {
+    final sample = RepositoryBaseSample();
+
+    if (File(sample.path).existsSync()) return;
+
+    sample.create();
+  }
+
   @override
   Future<void> execute() async {
     var name = p.basenameWithoutExtension(withArgument).pascalCase;
@@ -32,11 +79,21 @@ class GenerateModelCommand extends Command {
       name = result.pascalCase;
     }
 
+    final useStorage = containsArg('--withStorage');
+
     FileModel newFileModel;
     final classGenerator = ModelGenerator(
-        name, containsArg('--private'), containsArg('--withCopy'));
+      name,
+      containsArg('--private'),
+      containsArg('--withCopy'),
+      null,
+      useStorage,
+    );
 
-    newFileModel = Structure.model(name, 'model', false, on: onCommand);
+    if (useStorage) await createStorageBase();
+
+    newFileModel = Structure.model(name, 'model', true,
+        on: onCommand, folderName: name.snakeCase);
 
     var dartCode = classGenerator.generateDartClasses(await _jsonRawData);
 
@@ -47,22 +104,23 @@ class GenerateModelCommand extends Command {
     for (var warning in dartCode.warnings) {
       LogService.info('warning: ${warning.path} ${warning.warning} ');
     }
-    if (!containsArg('--skipProvider')) {
-      var pathSplit = Structure.safeSplitPath(modelPath);
-      pathSplit.removeWhere((element) => element == '.' || element == 'lib');
-      handleFileCreate(
-        name,
-        'provider',
-        onCommand,
-        true,
-        ProviderSample(
-          name,
-          createEndpoints: true,
-          modelPath: Structure.pathToDirImport(model.path),
-        ),
-        'providers',
-      );
-    }
+    // if (!containsArg('--skipProvider')) {
+    //   var pathSplit = Structure.safeSplitPath(modelPath);
+    //   pathSplit.removeWhere((element) => element == '.' || element == 'lib');
+    //   handleFileCreate(
+    //     name,
+    //     'provider',
+    //     onCommand,
+    //     true,
+    //     ProviderSample(
+    //       name,
+    //       createEndpoints: true,
+    //       modelPath: Structure.pathToDirImport(model.path),
+    //     ),
+    //     'providers',
+    //   );
+    // }
+    await createRepository(name, model.path);
   }
 
   @override

@@ -11,6 +11,7 @@ import 'sintaxe.dart';
 const Map<String, bool> PRIMITIVE_TYPES = {
   'int': true,
   'double': true,
+  'num': true,
   'String': true,
   'bool': true,
   'DateTime': false,
@@ -23,7 +24,7 @@ const Map<String, bool> PRIMITIVE_TYPES = {
   'dynamic': true,
 };
 
-enum ListType { Object, String, Double, Int, Null }
+enum ListType { Object, String, Double, Int, Num, Null }
 
 class MergeableListType {
   final ListType? listType;
@@ -41,6 +42,8 @@ MergeableListType mergeableListType(List<dynamic> list) {
       inferredType = ListType.Int;
     } else if (e.runtimeType.toString() == 'double') {
       inferredType = ListType.Double;
+    } else if (e.runtimeType.toString() == 'num') {
+      inferredType = ListType.Num;
     } else if (e.runtimeType.toString() == 'string') {
       inferredType = ListType.String;
     } else if (e is Map) {
@@ -216,9 +219,11 @@ String getTypeName(dynamic obj) {
   if (obj is String) {
     return 'String';
   } else if (obj is int) {
-    return 'int';
+    // return 'int';
+    return 'num';
   } else if (obj is double) {
-    return 'double';
+    // return 'double';
+    return 'num';
   } else if (obj is bool) {
     return 'bool';
   } else if (obj == null) {
